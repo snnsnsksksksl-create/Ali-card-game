@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Spider Solitaire - Ali Mirza</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif;user-select:none;-webkit-tap-highlight-color:transparent}
+:root{--gold:#d4af37;--cw:clamp(34px,9.3vw,52px);--ch:clamp(52px,14vw,72px)}
+html,body{width:100%;height:100%;overflow:hidden;background:#031208;color:#fff}
+.game{height:100dvh;width:100%;display:flex;flex-direction:column;background:radial-gradient(ellipse at top,#17653a,#0a3d1f 55%,#031208);overflow:hidden}
+.topbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:4px;padding:5px;background:#06150de8;border-bottom:2px solid var(--gold);z-index:20}
+.top-btn,.action-btn{background:#241507;color:#ffe477;border:2px solid var(--gold);border-radius:8px;font-weight:bold;padding:7px 9px;min-height:36px}
+.topbar-center{display:flex;justify-content:space-around;gap:4px;flex:1;min-width:0}
+.stat{display:flex;flex-direction:column;align-items:center;min-width:0}.stat-lbl{font-size:clamp(7px,1.8vw,9px);color:var(--gold);font-weight:bold}.stat-val{font-size:clamp(10px,2.7vw,14px);font-weight:bold}
+.board{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:8px 4px;overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+.top-row{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;flex-shrink:0}
+.foundation,.stock{height:var(--ch);min-width:0;border:2px dashed #b99a2c99;border-radius:6px;background:#001b0c66;position:relative}
+.foundation.filled{border-style:solid;border-color:var(--gold)}
+.stock{background:linear-gradient(135deg,#8b0000,#390000);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 10px #000;touch-action:manipulation}
+.stock-count{color:#ffe477;font-size:clamp(15px,4vw,21px);font-weight:bold}
+.tableau-row{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:2px;align-items:start;flex:1;min-height:0}
+.tableau-pile{position:relative;min-width:0;min-height:var(--ch);width:100%;touch-action:pan-y}
+.pile-bg{position:absolute;inset:0 auto auto 0;width:100%;height:var(--ch);border:1px dashed #d4af3744;border-radius:5px;pointer-events:none}
+.card{position:absolute;left:50%;width:calc(100% + 1px);max-width:var(--cw);height:var(--ch);transform:translateX(-50%);border-radius:6px;box-shadow:0 2px 5px #0008;touch-action:none;cursor:grab;z-index:1}
+.card.face-down{background:linear-gradient(135deg,#8b0000,#3b0000);border:2px solid var(--gold)}
+.card.face-down:before{content:"";position:absolute;inset:4px;border:1px solid #d4af3780;background:repeating-linear-gradient(45deg,transparent 0 4px,#d4af3728 4px 5px),repeating-linear-gradient(-45deg,transparent 0 4px,#d4af3728 4px 5px)}
+.card.face-down:after{content:"♠";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:18px;color:#d4af3788}
+.card.face-up{background:linear-gradient(135deg,#fff,#e9e9e9);border:1px solid #aaa;color:#111;padding:3px;display:flex;flex-direction:column;justify-content:space-between}
+.card.red{color:#c00}.card.black{color:#111}
+.corner{display:flex;flex-direction:column;align-items:center;font-weight:bold;line-height:1}.corner.top{align-items:flex-start}.corner.bottom{align-items:flex-end;transform:rotate(180deg)}
+.rank{font-size:clamp(10px,2.8vw,15px);line-height:1}.suit-small{font-size:clamp(8px,2.2vw,12px)}.suit-big{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:clamp(17px,4.6vw,26px)}
+.card.selected{outline:3px solid #ffe477;box-shadow:0 0 12px #ffe477;z-index:1000!important}
+.card.dragging{z-index:2000!important;box-shadow:0 8px 24px #000b;opacity:.96}
+.bottombar{flex-shrink:0;display:flex;justify-content:center;gap:8px;padding:7px;background:#06150df0;border-top:2px solid var(--gold);z-index:20;padding-bottom:max(7px,env(safe-area-inset-bottom))}
+.action-btn{flex:1;max-width:130px;font-size:clamp(11px,3vw,14px);padding:7px 3px}
+.action-btn:disabled{opacity:.4}
+.overlay{position:absolute;inset:0;background:#000d;z-index:3000;display:flex;align-items:center;justify-content:center;padding:15px}.hidden{display:none!important}
+.menu-box{background:linear-gradient(#241507,#090603);border:3px solid var(--gold);border-radius:16px;padding:20px 16px;width:min(360px,100%);max-height:90%;overflow:auto;text-align:center}
+.menu-box h1{color:#ffe477;font-size:22px;margin-bottom:8px}.menu-box p{color:#ccc;font-size:12px;margin-bottom:12px}
+.diff-btn,.menu-btn{width:100%;margin:5px 0;padding:12px;border:2px solid var(--gold);border-radius:10px;background:#241507;color:#ffe477;font-weight:bold;font-size:14px}
+.diff-btn{text-align:left}.easy{border-color:#22c55e}.medium{border-color:#f59e0b}.hard{border-color:#ef4444}
+.menu-stats,.win-stats{display:flex;gap:5px;margin:12px 0}.menu-stat,.win-stat{flex:1;border:1px solid var(--gold);border-radius:7px;padding:8px 3px}.menu-stat-lbl,.win-lbl{font-size:9px;color:var(--gold)}.menu-stat-val,.win-val{font-size:14px;font-weight:bold;margin-top:4px}
+.primary{background:#12652d;color:#fff;border-color:#22c55e}.danger{border-color:#c0392b;color:#ff7777}.rules-content{text-align:left;color:#ddd;font-size:12px;line-height:1.5}.rules-content p{margin:8px 0}
+@media(max-height:620px){:root{--ch:clamp(43px,10vh,60px)}.board{gap:6px;padding-top:5px}.topbar{padding:3px}.bottombar{padding:4px}.top-btn,.action-btn{min-height:30px;padding:4px}.card{height:var(--ch)}}
+</style>
+</head>
+<body>
+<div class="game" id="game">
+ <div class="topbar">
+  <button class="top-btn" id="menuBtn">☰</button>
+  <div class="topbar-center">
+   <div class="stat"><span class="stat-lbl">SCORE</span><span class="stat-val" id="scoreDisplay">500</span></div>
+   <div class="stat"><span class="stat-lbl">TIME</span><span class="stat-val" id="timeDisplay">00:00</span></div>
+   <div class="stat"><span class="stat-lbl">MOVES</span><span class="stat-val" id="movesDisplay">0</span></div>
+   <div class="stat"><span class="stat-lbl">SUITS</span><span class="stat-val" id="suitsDisplay">1</span></div>
+  </div>
+  <button class="top-btn" id="newGameBtn">↻</button>
+ </div>
+ <div class="board" id="board">
+  <div class="top-row" id="topRow">
+   <div class="foundation" data-foundation="0"></div><div class="foundation" data-foundation="1"></div><div class="foundation" data-foundation="2"></div><div class="foundation" data-foundation="3"></div><div class="foundation" data-foundation="4"></div><div class="foundation" data-foundation="5"></div><div class="foundation" data-foundation="6"></div><div class="foundation" data-foundation="7"></div>
+   <div class="stock" id="stock"><span class="stock-count" id="stockCount">5</span></div>
+  </div>
+  <div class="tableau-row" id="tableauRow"></div>
+ </div>
+ <div class="bottombar"><button class="action-btn" id="undoBtn">↩ Undo</button><button class="action-btn" id="hintBtn">💡 Hint</button><button class="action-btn" id="autoBtn">⚡ Auto</button></div>
+ <div class="overlay" id="difficultyScreen"><div class="menu-box"><h1>🕷️ Spider Solitaire</h1><p>Made by Ali Mirza</p><p style="color:#d4af37">Difficulty Chunein</p><button class="diff-btn easy" data-suits="1">🟢 Easy — 1 Suit ♠</button><button class="diff-btn medium" data-suits="2">🟡 Medium — 2 Suits ♠♥</button><button class="diff-btn hard" data-suits="4">🔴 Hard — 4 Suits ♠♥♦♣</button><div class="menu-stats"><div class="menu-stat"><div class="menu-stat-lbl">Games Won</div><div class="menu-stat-val" id="statWon">0</div></div><div class="menu-stat"><div class="menu-stat-lbl">Best Score</div><div class="menu-stat-val" id="statBestScore">0</div></div><div class="menu-stat"><div class="menu-stat-lbl">Best Time</div><div class="menu-stat-val" id="statBestTime">--:--</div></div></div></div></div>
+ <div class="overlay hidden" id="menuScreen"><div class="menu-box"><h1>⏸ Menu</h1><div class="menu-stats"><div class="menu-stat"><div class="menu-stat-lbl">Score</div><div class="menu-stat-val" id="menuScore">0</div></div><div class="menu-stat"><div class="menu-stat-lbl">Time</div><div class="menu-stat-val" id="menuTime">00:00</div></div><div class="menu-stat"><div class="menu-stat-lbl">Moves</div><div class="menu-stat-val" id="menuMoves">0</div></div></div><button class="menu-btn primary" id="menuResumeBtn">▶ Resume</button><button class="menu-btn" id="menuNewBtn">↻ New Game</button><button class="menu-btn" id="menuRulesBtn">📖 Rules</button><button class="menu-btn" id="menuChangeDiffBtn">🎯 Change Difficulty</button><button class="menu-btn danger" id="menuResetBtn">Reset Stats</button></div></div>
+ <div class="overlay hidden" id="rulesScreen"><div class="menu-box"><h1>📖 Rules</h1><div class="rules-content"><p><b>Goal:</b> Complete eight same-suit sequences from King to Ace.</p><p><b>Move:</b> Drag a face-up card or same-suit sequence onto a card one rank higher, or onto an empty pile.</p><p><b>Stock:</b> Deals ten cards, one per pile. No empty piles allowed when dealing.</p></div><button class="menu-btn primary" id="rulesCloseBtn">Close</button></div></div>
+ <div class="overlay hidden" id="winScreen"><div class="menu-box"><h1>🎉 YOU WIN! 🎉</h1><p>Mubarak ho!</p><div class="win-stats"><div class="win-stat"><div class="win-lbl">Score</div><div class="win-val" id="winScore">0</div></div><div class="win-stat"><div class="win-lbl">Time</div><div class="win-val" id="winTime">00:00</div></div><div class="win-stat"><div class="win-lbl">Moves</div><div class="win-val" id="winMoves">0</div></div></div><button class="menu-btn primary" id="winNewBtn">New Game</button><button class="menu-btn" id="winCloseBtn">Close</button></div></div>
+</div>
+<script>
+(function(){
+'use strict';
+const SUITS=['♠','♥','♦','♣'], COLORS={'♠':'black','♥':'red','♦':'red','♣':'black'}, RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'], VAL={'A':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13}, N=10;
+let tableau=[],foundations=[],stock=[],score=500,moves=0,timeElapsed=0,timer=null,started=false,suitsCount=1,history=[],selected=null,gameOver=false,drag=null;
+const $=id=>document.getElementById(id), row=$('tableauRow'), stockEl=$('stock'), foundationEls=document.querySelectorAll('.foundation');
+let stats={won:+localStorage.spiderWon||0,bestTime:+localStorage.spiderBestTime||0,bestScore:+localStorage.spiderBestScore||0};
+function fmt(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function hud(){$('scoreDisplay').textContent=score;$('timeDisplay').textContent=fmt(timeElapsed);$('movesDisplay').textContent=moves;$('suitsDisplay').textContent=suitsCount;$('stockCount').textContent=stock.length}
+function startTimer(){if(timer||gameOver)return;started=true;timer=setInterval(()=>{timeElapsed++;hud()},1000)}
+function stopTimer(){clearInterval(timer);timer=null}
+function newGame(s=1){suitsCount=s;let use=s===1?Array(8).fill('♠'):s===2?['♠','♠','♠','♠','♥','♥','♥','♥']:['♠','♠','♥','♥','♦','♦','♣','♣'];let deck=[];use.forEach((su,i)=>RANKS.forEach(r=>deck.push({suit:su,rank:r,value:VAL[r],color:COLORS[su],faceUp:false,id:i+'-'+r+'-'+Math.random()})));for(let i=deck.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}tableau=Array.from({length:N},()=>[]);foundations=[];stock=[];let ix=0;for(let p=0;p<N;p++){let n=p<4?6:5;for(let c=0;c<n;c++){let card=deck[ix++];card.faceUp=c===n-1;tableau[p].push(card)}}for(let d=0;d<5;d++)stock.push(deck.slice(ix+d*10,ix+(d+1)*10));score=500;moves=0;timeElapsed=0;started=false;gameOver=false;history=[];selected=null;stopTimer();createPiles();hud();render()}
+function createPiles(){row.innerHTML='';for(let i=0;i<N;i++){let p=document.createElement('div');p.className='tableau-pile';p.dataset.pile=i;let bg=document.createElement('div');bg.className='pile-bg';p.appendChild(bg);row.appendChild(p)}}
+function offset(pile){return pile.length>18?Math.max(9,Math.floor(36-(pile.length-18)*1.4)):pile.length>10?Math.max(13,Math.floor(26-(pile.length-10)*1.1)):Math.max(19,Math.floor(window.innerHeight*.035))}
+function cardEl(c){let e=document.createElement('div');e.className='card '+(c.faceUp?'face-up '+c.color:'face-down');e.dataset.cardId=c.id;if(c.faceUp)e.innerHTML='<div class="corner top"><span class="rank">'+c.rank+'</span><span class="suit-small">'+c.suit+'</span></div><div class="suit-big">'+c.suit+'</div><div class="corner bottom"><span class="rank">'+c.rank+'</span><span class="suit-small">'+c.suit+'</span></div>';return e}
+function render(){row.querySelectorAll('.card').forEach(e=>e.remove());tableau.forEach((pile,p)=>{pile.forEach((c,i)=>{let e=cardEl(c);e.style.top=(i*offset(pile))+'px';e.style.zIndex=i;e.dataset.pile=p;e.dataset.cardIndex=i;if(selected&&selected.pile===p&&i>=selected.index)e.classList.add('selected');row.children[p].appendChild(e)});row.children[p].style.height=Math.max(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ch'))||60,(pile.length?((pile.length-1)*offset(pile)+parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ch'))):parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ch'))))+'px'});foundationEls.forEach((el,i)=>{el.innerHTML='';el.classList.toggle('filled',!!foundations[i]);if(foundations[i]){let e=cardEl(foundations[i]);e.style.position='relative';e.style.left='0';e.style.transform='none';el.appendChild(e)}});stockEl.classList.toggle('empty',!stock.length);$('undoBtn').disabled=!history.length}
+function save(){history.push({tableau:tableau.map(p=>p.map(c=>({...c}))),stock:stock.map(d=>d.map(c=>({...c}))),foundations:foundations.map(c=>c?({...c}):c),score,moves});if(history.length>100)history.shift()}
+function undo(){if(!history.length)return;let h=history.pop();tableau=h.tableau;stock=h.stock;foundations=h.foundations;score=h.score;moves=h.moves;selected=null;hud();render()}
+function validSeq(cards){return cards.length>0&&cards.every(c=>c.faceUp)&&cards.slice(0,-1).every((c,i)=>c.suit===cards[i+1].suit&&c.value===cards[i+1].value+1)}
+function canPlace(card,to){let p=tableau[to];return !p.length||p[p.length-1].faceUp&&p[p.length-1].value===card.value+1}
+function move(from,index,to){if(from===to)return false;let cards=tableau[from].slice(index);if(!validSeq(cards)||!canPlace(cards[0],to))return false;save();tableau[from].splice(index);if(tableau[from].length&&!tableau[from].at(-1).faceUp){tableau[from].at(-1).faceUp=true;score=Math.max(0,score-1)}tableau[to].push(...cards);moves++;score=Math.max(0,score-1);selected=null;checkSets();hud();render();checkWin();return true}
+function checkSets(){for(let p=0;p<N;p++){let pile=tableau[p];if(pile.length<13)continue;let seq=pile.slice(-13);if(seq[0].value===13&&seq[12].value===1&&validSeq(seq)){tableau[p]=pile.slice(0,-13);foundations.push(seq[12]);score+=100;if(tableau[p].length&&!tableau[p].at(-1).faceUp)tableau[p].at(-1).faceUp=true;checkSets();return}}}
+function deal(){if(!stock.length)return;if(tableau.some(p=>!p.length)){alert('Pehle empty piles mein card rakhein.');return}save();let d=stock.pop();d.forEach((c,i)=>{c.faceUp=true;tableau[i].push(c)});moves++;score=Math.max(0,score-1);selected=null;hud();render();checkSets();checkWin()}
+function checkWin(){if(foundations.length>=8){gameOver=true;stopTimer();score+=500+Math.max(0,1000-timeElapsed*2);stats.won++;stats.bestScore=Math.max(stats.bestScore,score);if(!stats.bestTime||timeElapsed<stats.bestTime)stats.bestTime=timeElapsed;localStorage.spiderWon=stats.won;localStorage.spiderBestScore=stats.bestScore;localStorage.spiderBestTime=stats.bestTime;updateStats();$('winScore').textContent=score;$('winTime').textContent=fmt(timeElapsed);$('winMoves').textContent=moves;$('winScreen').classList.remove('hidden')}}
+function updateStats(){$('statWon').textContent=stats.won;$('statBestScore').textContent=stats.bestScore;$('statBestTime').textContent=stats.bestTime?fmt(stats.bestTime):'--:--'}
+function handleTap(e){let el=e.target.closest('.card');if(!el||el.dataset.pile===undefined)return;let p=+el.dataset.pile,i=+el.dataset.cardIndex,c=tableau[p][i];if(!c)return;startTimer();if(!c.faceUp){if(i===tableau[p].length-1){save();c.faceUp=true;score=Math.max(0,score-1);hud();render()}return}if(selected){if(move(selected.pile,selected.index,p))return;selected=null}selected={pile:p,index:i};if(!validSeq(tableau[p].slice(i)))selected={pile:p,index:tableau[p].length-1};render()}
+row.addEventListener('pointerdown',e=>{let el=e.target.closest('.card');if(!el||el.dataset.pile===undefined)return;let p=+el.dataset.pile,i=+el.dataset.cardIndex,c=tableau[p][i];if(!c||!c.faceUp)return;startTimer();let cards=tableau[p].slice(i);if(!validSeq(cards))return;drag={from:p,index:i,startX:e.clientX,startY:e.clientY,el,moved:false};el.setPointerCapture?.(e.pointerId);});
+row.addEventListener('pointermove',e=>{if(!drag)return;if(Math.abs(e.clientX-drag.startX)+Math.abs(e.clientY-drag.startY)>8)drag.moved=true;if(drag.moved){drag.el.classList.add('dragging');drag.el.style.transform='translate(-50%,0)';drag.el.style.left=(e.clientX-row.getBoundingClientRect().left)+'px';drag.el.style.top=(e.clientY-row.getBoundingClientRect().top-20)+'px'}});
+row.addEventListener('pointerup',e=>{if(!drag)return;let d=drag;drag=null;d.el.classList.remove('dragging');d.el.style.left='';d.el.style.transform='';if(d.moved){let target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.tableau-pile');if(target)move(d.from,d.index,+target.dataset.pile);else render()}else handleTap({target:d.el});});
+row.addEventListener('pointercancel',()=>{drag=null;render()});
+function hint(){for(let p=0;p<N;p++){let pile=tableau[p];for(let i=0;i<pile.length;i++){let cards=pile.slice(i);if(!validSeq(cards))continue;for(let t=0;t<N;t++)if(t!==p&&canPlace(cards[0],t)){row.children[p].querySelectorAll('.card')[i]?.classList.add('selected');return}}}if(stock.length)stockEl.style.boxShadow='0 0 15px #ffe477';else alert('Koi move nahi mila!');setTimeout(()=>{stockEl.style.boxShadow='';render()},1500)}
+function attach(id,fn){$(id).addEventListener('click',fn)}
+stockEl.addEventListener('click',deal);
+attach('undoBtn',undo);attach('hintBtn',hint);
+attach('autoBtn',()=>{let did=false;for(let p=0;p<N&&!did;p++)for(let i=0;i<tableau[p].length&&!did;i++){let c=tableau[p][i];if(!c.faceUp)continue;for(let t=0;t<N;t++)if(t!==p&&canPlace(c,t)&&validSeq(tableau[p].slice(i))){did=move(p,i,t);break}}if(!did)alert('Koi auto move nahi mila!')});
+attach('menuBtn',()=>{stopTimer();$('menuScore').textContent=score;$('menuTime').textContent=fmt(timeElapsed);$('menuMoves').textContent=moves;$('menuScreen').classList.remove('hidden')});
+attach('menuResumeBtn',()=>{$('menuScreen').classList.add('hidden');if(started)startTimer()});
+attach('menuNewBtn',()=>{$('menuScreen').classList.add('hidden');$('difficultyScreen').classList.remove('hidden')});
+attach('newGameBtn',()=>{$('difficultyScreen').classList.remove('hidden');stopTimer()});
+attach('menuRulesBtn',()=>{$('menuScreen').classList.add('hidden');$('rulesScreen').classList.remove('hidden')});
+attach('rulesCloseBtn',()=>{$('rulesScreen').classList.add('hidden');$('menuScreen').classList.remove('hidden')});
+attach('menuChangeDiffBtn',()=>{$('menuScreen').classList.add('hidden');$('difficultyScreen').classList.remove('hidden')});
+attach('menuResetBtn',()=>{if(confirm('Reset stats?')){stats={won:0,bestTime:0,bestScore:0};localStorage.spiderWon='0';localStorage.spiderBestTime='0';localStorage.spiderBestScore='0';updateStats()}});
+attach('winNewBtn',()=>{$('winScreen').classList.add('hidden');$('difficultyScreen').classList.remove('hidden')});attach('winCloseBtn',()=>$('winScreen').classList.add('hidden'));
+document.querySelectorAll('.diff-btn').forEach(b=>b.addEventListener('click',()=>{$('difficultyScreen').classList.add('hidden');newGame(+b.dataset.suits);startTimer()}));
+window.addEventListener('resize',render);updateStats();newGame(1);
+})();
+</script>
+</body></html>
